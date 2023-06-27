@@ -1,9 +1,10 @@
 # Walgreens-Savings
-Simple scraper to find savings on Walgreens.
+Simple script to add savings to Walgreens accounts.
 
 
-- I was tired of having to scroll through the pages and pages of coupons on Walgreens app and desktop site. So I made this basic script that shows the deal, expiration date, and name of product. 
-- I will be updating it so I can add the coupons onto my Walgreens card but that will come with time.
+- I was tired of having to "clip" all the coupons manually on the Walgreens app and desktop site. So I made this basic script that does it for me. Unfortunely, Walgreens limits accounts to 200 coupons so trying to run the script when you hit the max will not work.
+
+- If you have any questions or issues please let me know
 
 Best,
 Julio
