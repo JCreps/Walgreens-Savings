@@ -1,31 +1,81 @@
+import time
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
-driver = webdriver.Chrome()  # or 
+# Constants
+CHROME_DRIVER_PATH = r"" #Put ur chrome driver path here
+WEBPAGE_URL = "https://www.walgreens.com/login.jsp?ru=%2Foffers%2Foffers.jsp"
+EMAIL = "" # Put your Walgreens Email here
+PASSWORD = "" # Put your Walgreens password here
 
-url = 'https://www.walgreens.com/offers/offers.jsp?ban=dl_dlsp_MegaMenu_Coupons'
-driver.get(url)
+def create_browser_instance():
+    """Create a new Chrome browser instance with specific options."""
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--incognito")
+    prefs = {"profile.default_content_setting_values.geolocation" :2}
+    chrome_options.add_experimental_option("prefs",prefs)
+    return webdriver.Chrome(executable_path=CHROME_DRIVER_PATH, options=chrome_options)
 
-html = driver.page_source
-soup = BeautifulSoup(html, 'html.parser')
+def login(browser_driver):
+    """Navigate to the login page and enter credentials."""
+    browser_driver.get(WEBPAGE_URL)
+    time.sleep(2)
 
-# Use CSS selector to find all elements with an id that ends with '-coupon-availablecoupons'
-coupons = soup.select('[id$="-coupon-availablecoupons"]')
+    email_input = browser_driver.find_element_by_id("user_name")
+    email_input.send_keys(EMAIL)
 
-for coupon in coupons:
+    password_input = browser_driver.find_element_by_id("user_password")
+    time.sleep(2)
+    password_input.send_keys(PASSWORD)
+    password_input.send_keys(Keys.RETURN)
+
+def clip_coupons(browser_driver):
+    """Click all 'Clip' buttons on the page."""
+    wait = WebDriverWait(browser_driver, 7.5)
+
     try:
-        # Extract the number from the id attribute
-        coupon_number = coupon['id'].split('-')[0]
+        # Identify the 'Clip' buttons using the CSS class 'btn btn-block btn__blue'
+        elements = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.btn.btn-block.btn__blue')))
+        
+        # click all the 'Clip' buttons
+        for element in elements:
+            browser_driver.execute_script("arguments[0].click();", element)
+            time.sleep(2)  # Wait for 2 seconds after each click
+            # You may need to handle popups or other interactions after clicking.
 
-        # Find the card__item element within each coupon
-        card_item = coupon.find('div', class_='card__item')
+    except TimeoutException:
+        print("Timed out waiting for page to load")
 
-        # Extract the expiration date, savings amount, and product name
-        expiration_date = card_item.find('div', class_='font__fourteen text-color__blue').text
-        savings = card_item.find('div', class_='wag-txt-elipsis font__eighteen text-color__red').text
-        product_name = card_item.find('strong', class_='font__eighteen text-color__blue').text
 
-        print(f'Coupon Number: {coupon_number}, Expiration Date: {expiration_date}, Savings: {savings}, Product Name: {product_name}')
-    except AttributeError:
-        print(f'Error processing coupon number {coupon_number}, skipping to next coupon.')
-        continue
+def main():
+    """Main function to coordinate the process."""
+    browser_driver = create_browser_instance()
+    while True:
+        try:
+            login(browser_driver)
+            time.sleep(10)
+            print("Waiting for verification code!")
+
+            if "Access Denied" in browser_driver.page_source:
+                print("Access Denied page encountered. Restarting the session...")
+                browser_driver.quit()
+                browser_driver = create_browser_instance()
+                continue
+
+            clip_coupons(browser_driver)
+            time.sleep(6)  # Sleep for 6 seconds
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            browser_driver.quit()
+            browser_driver = create_browser_instance()
+
+if __name__ == "__main__":
+    main()
